@@ -1,0 +1,68 @@
+SELECT c.customer_id, c.registration_date, pd.full_name, pd.email
+FROM CUSTOMER c
+JOIN CUSTOMER_PERSONAL_DATA pd ON c.customer_id = pd.customer_id;
+
+SELECT sp.plan_name, sp.monthly_fee, COUNT(DISTINCT s.customer_id) AS total_customers
+FROM SERVICE_PLAN sp
+LEFT JOIN SUBSCRIPTION s ON sp.plan_id = s.plan_id
+GROUP BY sp.plan_id, sp.plan_name, sp.monthly_fee;
+
+SELECT s.subscription_id, SUM(u.data_used_mb) AS total_data_mb
+FROM SUBSCRIPTION s
+JOIN SUBSCRIPTION_USAGE u ON s.subscription_id = u.subscription_id
+WHERE u.usage_date BETWEEN '2025-06-01' AND '2025-06-30'
+GROUP BY s.subscription_id;
+
+SELECT b.bill_id, b.total_amount, 
+       COALESCE(SUM(p.amount_paid), 0) AS amount_paid,
+       b.total_amount - COALESCE(SUM(p.amount_paid), 0) AS balance_due
+FROM BILLING b
+LEFT JOIN PAYMENT p ON b.bill_id = p.bill_id
+GROUP BY b.bill_id, b.total_amount;
+
+SELECT c.customer_id, pd.full_name, SUM(u.call_minutes) AS total_call_minutes
+FROM CUSTOMER c
+JOIN CUSTOMER_PERSONAL_DATA pd ON c.customer_id = pd.customer_id
+JOIN SUBSCRIPTION s ON c.customer_id = s.customer_id
+JOIN SUBSCRIPTION_USAGE u ON s.subscription_id = u.subscription_id
+WHERE u.usage_date BETWEEN '2025-06-01' AND '2025-06-30'
+GROUP BY c.customer_id, pd.full_name
+ORDER BY total_call_minutes DESC
+LIMIT 10;
+
+SELECT DISTINCT c.customer_id, pd.full_name, sp.plan_name, SUM(u.data_used_mb) AS data_mb, b.total_amount
+FROM CUSTOMER c
+JOIN CUSTOMER_PERSONAL_DATA pd ON c.customer_id = pd.customer_id
+JOIN SUBSCRIPTION s ON c.customer_id = s.customer_id
+JOIN SERVICE_PLAN sp ON s.plan_id = sp.plan_id
+JOIN SUBSCRIPTION_USAGE u ON s.subscription_id = u.subscription_id
+JOIN BILLING b ON s.subscription_id = b.subscription_id
+WHERE u.usage_date BETWEEN '2025-06-01' AND '2025-06-30'
+  AND b.bill_date BETWEEN '2025-06-01' AND '2025-06-30'
+GROUP BY c.customer_id, pd.full_name, sp.plan_name, b.total_amount
+HAVING data_mb > 2000 AND b.total_amount > 30;
+
+
+SELECT s.subscription_id, sp.plan_name, s.start_date, s.end_date
+FROM SUBSCRIPTION s
+JOIN SERVICE_PLAN sp ON s.plan_id = sp.plan_id
+WHERE s.customer_id = 1
+  AND (s.end_date IS NULL OR s.end_date > CURDATE());
+
+SELECT c.customer_id, pd.full_name, COUNT(t.ticket_id) AS open_tickets
+FROM CUSTOMER c
+JOIN CUSTOMER_PERSONAL_DATA pd ON c.customer_id = pd.customer_id
+JOIN SUPPORT_TICKET t ON c.customer_id = t.customer_id
+WHERE t.status = 'open'
+GROUP BY c.customer_id, pd.full_name;
+
+SELECT s.subscription_id,
+       sp.monthly_fee,
+       COALESCE(SUM(u.data_used_mb) * 0.01, 0) AS data_charge,
+       COALESCE(SUM(u.call_minutes) * 0.05, 0) AS call_charge, 
+       COALESCE(SUM(u.sms_count) * 0.02, 0) AS sms_charge,
+       (sp.monthly_fee + COALESCE(SUM(u.data_used_mb) * 0.01, 0) + COALESCE(SUM(u.call_minutes) * 0.05, 0) + COALESCE(SUM(u.sms_count) * 0.02, 0)) AS total_bill
+FROM SUBSCRIPTION s
+JOIN SERVICE_PLAN sp ON s.plan_id = sp.plan_id
+LEFT JOIN SUBSCRIPTION_USAGE u ON s.subscription_id = u.subscription_id AND u.usage_date BETWEEN '2025-06-01' AND '2025-06-30'
+GROUP BY s.subscription_id, sp.monthly_fee;
