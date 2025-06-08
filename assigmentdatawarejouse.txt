@@ -1,0 +1,108 @@
+CREATE DATABASE TelecomDB;
+USE TelecomDB;
+
+CREATE TABLE CUSTOMER (
+    customer_id INT AUTO_INCREMENT PRIMARY KEY,
+    registration_date DATE NOT NULL
+);
+
+CREATE TABLE CUSTOMER_PERSONAL_DATA (
+    personal_data_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES CUSTOMER(customer_id)
+);
+
+CREATE TABLE SERVICE_PLAN (
+    plan_id INT AUTO_INCREMENT PRIMARY KEY,
+    plan_name VARCHAR(100) NOT NULL,
+    monthly_fee DECIMAL(10, 2) NOT NULL
+);
+
+CREATE TABLE SUBSCRIPTION (
+    subscription_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT,
+    plan_id INT,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    FOREIGN KEY (customer_id) REFERENCES CUSTOMER(customer_id),
+    FOREIGN KEY (plan_id) REFERENCES SERVICE_PLAN(plan_id)
+);
+
+CREATE TABLE SUBSCRIPTION_USAGE (
+    usage_id INT AUTO_INCREMENT PRIMARY KEY,
+    subscription_id INT,
+    usage_date DATE NOT NULL,
+    data_used_mb DECIMAL(10, 2),
+    call_minutes DECIMAL(10, 2),
+    sms_count INT,
+    FOREIGN KEY (subscription_id) REFERENCES SUBSCRIPTION(subscription_id)
+);
+
+CREATE TABLE BILLING (
+    bill_id INT AUTO_INCREMENT PRIMARY KEY,
+    subscription_id INT,
+    bill_date DATE NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    due_date DATE,
+    FOREIGN KEY (subscription_id) REFERENCES SUBSCRIPTION(subscription_id)
+);
+
+CREATE TABLE PAYMENT (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    bill_id INT,
+    payment_date DATE NOT NULL,
+    amount_paid DECIMAL(10,2) NOT NULL,
+    payment_method VARCHAR(50),
+    FOREIGN KEY (bill_id) REFERENCES BILLING(bill_id)
+);
+
+CREATE TABLE SUPPORT_TICKET (
+    ticket_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT,
+    issue_description TEXT,
+    status VARCHAR(20) DEFAULT 'open',
+    created_date DATE NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES CUSTOMER(customer_id)
+);
+
+INSERT INTO CUSTOMER (registration_date) VALUES 
+('2025-01-10'), 
+('2025-03-15');
+
+INSERT INTO CUSTOMER_PERSONAL_DATA (customer_id, full_name, email)
+VALUES 
+(1, 'Umut', 'umut@example.com'),
+(2, 'Ayşe', 'ayse@example.com');
+
+INSERT INTO SERVICE_PLAN (plan_name, monthly_fee)
+VALUES 
+('5GB + 500 Minutes + 100 SMS', 13.29),
+('Unlimited Internet + Calls', 33.93);
+
+INSERT INTO SUBSCRIPTION (customer_id, plan_id, start_date)
+VALUES 
+(1, 1, '2025-01-15'),
+(2, 2, '2025-03-20');
+
+INSERT INTO SUBSCRIPTION_USAGE (subscription_id, usage_date, data_used_mb, call_minutes, sms_count)
+VALUES 
+(1, '2025-06-01', 1000.00, 30.5, 10),
+(1, '2025-06-02', 500.00, 20.0, 5),
+(2, '2025-06-01', 3500.00, 60.0, 50);
+
+INSERT INTO BILLING (subscription_id, bill_date, total_amount, due_date)
+VALUES 
+(1, '2025-06-04', 22.49, '2025-05-06'),
+(2, '2025-06-04', 39.99, '2025-05-06');
+
+INSERT INTO PAYMENT (bill_id, payment_date, amount_paid, payment_method)
+VALUES 
+(1, '2025-06-06', 22.33, 'Credit Card'),
+(2, '2024-06-06', 34.43, 'Bank Transfer');
+
+INSERT INTO SUPPORT_TICKET (customer_id, issue_description, status, created_date)
+VALUES 
+(1, 'Mobile internet is not working.', 'open', '2025-06-07'),
+(2, 'Overcharged on my bill.', 'closed', '2025-06-07');
